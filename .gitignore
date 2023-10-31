@@ -1,0 +1,12 @@
+# Ignore Virtual Environment Files
+.venv/
+# Ignore Cache Files
+*.pyc
+# Ignore CSV files at the root
+/*.csv
+# Ignore PDF files at the root
+/*.pdf
+# Ignore Dynamically Generated Files
+output_folder/
+invoice_folder/
+final_folder/
