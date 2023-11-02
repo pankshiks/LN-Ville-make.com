@@ -58,9 +58,9 @@ class DataProcessor:
 
         # Process and generate invoices
         for file_path in file_data:
-            data1 = file_data["./data/Pay Journal (CSV).csv"]
-            data2 = file_data["./data/CYP invoice query FY 24 Auto Reconciliation.xlsm_0"]
-            data3 = file_data["./data/CYP invoice query FY 24 Auto Reconciliation.xlsm_1"]
+            data1 = file_data["./uploads/Pay Journal (CSV).csv"]
+            data2 = file_data["./uploads/CYP invoice query FY 24 Auto Reconciliation.xlsm_0"]
+            data3 = file_data["./uploads/CYP invoice query FY 24 Auto Reconciliation.xlsm_1"]
 
             column_mapping = {
                 "Employee Number": "Employee No.",
@@ -112,7 +112,7 @@ class DataProcessor:
 
                 final_data = []
                 total_amount = 0
-
+                # prefix = csv_file.split("-")
                 for src_col, target_col in mapping.items():
                     if src_col in data.columns and target_col in data.columns:
                         unit = data[src_col].values
@@ -121,10 +121,11 @@ class DataProcessor:
                             continue
 
                         result = unit * rate
-
                         description = (
                             data["Job Classification"]
                             + "-"
+                            # + prefix[0]
+                            # + "-"
                             + target_col
                             + "-"
                             + data["Given Names"]
@@ -155,7 +156,6 @@ class DataProcessor:
                                 "Given Names": data["Given Names"][i],
                                 "Last Name": data["Last Name"][i],
                             }
-
                             final_data.append(row)
 
                 result_df = pd.DataFrame(final_data)
