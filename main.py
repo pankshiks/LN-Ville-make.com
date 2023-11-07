@@ -42,9 +42,6 @@ def is_valid_file_extension(filename, valid_extensions):
 # Define the send_data_to_webhook function to send data to the webhook
 def send_data_to_webhook(data: dict, files: dict):
     webhook_url = "https://hook.eu2.make.com/e5ql7jh487prsm5551jegt98wr2l463p"
-    print(data)
-    print(files)
-    print("===================")
     try:
         files_data = [
             ("file_data", (file_name, file_data, content_type))
@@ -53,7 +50,6 @@ def send_data_to_webhook(data: dict, files: dict):
         response = requests.post(
             webhook_url, data={"fulldata": json.dumps(data)}, files=files_data
         )
-        print(response.status_code)
         response.raise_for_status()  # Raise an exception for HTTP errors
 
         return {"message": "Data sent to the webhook successfully"}
@@ -63,50 +59,57 @@ def send_data_to_webhook(data: dict, files: dict):
 
 
 def calculate_amount_sum(csv_folder_path, pdf_folder_path):
-    # Create an empty list to store the results
-    results = []
-    # Create a separate list for files
-    files_list = []
+    try:
+        # Create an empty list to store the results
+        results = []
+        # Create a separate list for files
+        files_list = []
 
-    # Iterate through all files in the folder
-    for file_name in os.listdir(csv_folder_path):
-        # Construct the full path to the CSV file
-        file_path = os.path.join(csv_folder_path, file_name)
-        company_name = file_name.split("-")
-        try:
-            # Read the CSV file into a Pandas DataFrame
-            df = pd.read_csv(file_path)
-            clients_df = pd.read_csv("./app/data/clients_and_projects.csv")
-            filtered_df = clients_df[
-                clients_df["Project"].str.contains(
-                    company_name[0], case=False, na=False
-                )
-            ]
+        # Iterate through all files in the folder
+        for file_name in os.listdir(csv_folder_path):
+            # Construct the full path to the CSV file
+            file_path = os.path.join(csv_folder_path, file_name)
+            company_name = file_name.split("-")
+            try:
+                # Read the CSV file into a Pandas DataFrame
+                df = pd.read_csv(file_path)
+                clients_df = pd.read_csv("./app/data/clients_and_projects.csv")
+                filtered_df = clients_df[
+                    clients_df["Project"].str.contains(
+                        company_name[0], case=False, na=False
+                    )
+                ]
 
-            if not filtered_df.empty:
-                filtered_data = filtered_df.iloc[0].to_dict()
-                total_amount = df["Amount"].sum()
+                if not filtered_df.empty:
+                    filtered_data = filtered_df.iloc[0].to_dict()
+                    total_amount = df["Amount"].sum()
 
-                # Create a result dictionary and append it to the list
-                result = {"total_amount": total_amount, "filtered_data": filtered_data}
-                results.append(result)
+                    # Create a result dictionary and append it to the list
+                    result = {
+                        "total_amount": total_amount,
+                        "filtered_data": filtered_data,
+                    }
+                    results.append(result)
 
-                # Get the corresponding PDF file name
-                pdf_file_name = os.path.splitext(file_name)[0] + ".pdf"
-                pdf_file_path = os.path.join(pdf_folder_path, pdf_file_name)
+                    # Get the corresponding PDF file name
+                    pdf_file_name = os.path.splitext(file_name)[0] + ".pdf"
+                    pdf_file_path = os.path.join(pdf_folder_path, pdf_file_name)
 
-                # Read the PDF file in binary format
-                with open(pdf_file_path, "rb") as pdf_file:
-                    pdf_binary = pdf_file.read()
+                    # Read the PDF file in binary format
+                    with open(pdf_file_path, "rb") as pdf_file:
+                        pdf_binary = pdf_file.read()
 
-                # Create a files dictionary for the PDF file
-                files = (pdf_file_name, pdf_binary, "application/pdf")
-                files_list.append(files)
+                    # Create a files dictionary for the PDF file
+                    files = (pdf_file_name, pdf_binary, "application/pdf")
+                    files_list.append(files)
 
-        except FileNotFoundError:
-            continue
+            except FileNotFoundError:
+                continue
 
-    return results, files_list
+        return results, files_list
+    except Exception as e:
+        print("Not Working", e)
+        return None
 
 
 class ProcessInvoicesResponse(BaseModel):
@@ -211,7 +214,8 @@ async def process_data_and_invoices(
     # Call the send_data_to_webhook function to send the data to the webhook
     # Organize the data and files into dictionaries
     result, files_list = calculate_amount_sum(csv_folder_path, pdf_folder_path)
-
+    print(result, files_list)
+    print("===================")
     data = {"data": result}
     files = {"files": files_list}
 
