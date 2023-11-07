@@ -64,9 +64,12 @@ def calculate_amount_sum(csv_folder_path, pdf_folder_path):
         results = []
         # Create a separate list for files
         files_list = []
+        print(len(os.listdir(csv_folder_path)))
+        print(len(os.listdir(pdf_folder_path)))
 
         # Iterate through all files in the folder
         for file_name in os.listdir(csv_folder_path):
+            print(file_name)
             # Construct the full path to the CSV file
             file_path = os.path.join(csv_folder_path, file_name)
             company_name = file_name.split("-")
@@ -214,8 +217,6 @@ async def process_data_and_invoices(
     # Call the send_data_to_webhook function to send the data to the webhook
     # Organize the data and files into dictionaries
     result, files_list = calculate_amount_sum(csv_folder_path, pdf_folder_path)
-    print(result, files_list)
-    print("===================")
     data = {"data": result}
     files = {"files": files_list}
 
