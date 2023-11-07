@@ -19,7 +19,7 @@ base_url = os.environ.get("BASE_URL", "http://127.0.0.1:8000")
 # Define the directory path
 directory_path = "final_folder"
 one_more = "invoice_folder"
-csv_data_directory = "app/data"
+csv_data_directory = "data"
 csv_file_name = "clients_and_projects.csv"
 
 
