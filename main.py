@@ -72,7 +72,7 @@ def calculate_amount_sum(csv_folder_path, pdf_folder_path):
             company_name = file_name.split("-")
             # Read the CSV file into a Pandas DataFrame
             df = pd.read_csv(file_path)
-            clients_df = pd.read_csv("./app/data/clients_and_projects.csv")
+            clients_df = pd.read_csv("app/data/clients_and_projects.csv")
             filtered_df = clients_df[
                 clients_df["Project"].str.contains(
                     company_name[0], case=False, na=False
