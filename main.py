@@ -17,10 +17,15 @@ app = FastAPI()
 
 # Define the directory path
 directory_path = "final_folder"
+one_more = "invoice_folder"
 
 # Check if the directory exists, and create it if it doesn't
 if not os.path.exists(directory_path):
     os.makedirs(directory_path)
+
+# Check if the directory exists, and create it if it doesn't
+if not os.path.exists(one_more):
+    os.makedirs(one_more)
 
 # Mount the directory as a static directory
 app.mount("/pdfs", StaticFiles(directory=directory_path), name="pdfs")
