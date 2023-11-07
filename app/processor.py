@@ -10,6 +10,7 @@ class DataProcessor:
         self.file_paths = file_paths
         self.output_folder = "output_folder"
         self.invoice_folder = "invoice_folder"
+        # clients_df = pd.read_csv("./data/clients_and_projects.csv")
 
     def process_csv(self, file_path):
         journal_data = DataReader(file_path)
@@ -53,14 +54,20 @@ class DataProcessor:
                 file_data[file_path] = grouped_journal_df
             else:
                 for sheet_name, sheet_data in enumerate(grouped_df):
-                    grouped_journal_df = pd.concat([group for name, group in sheet_data])
+                    grouped_journal_df = pd.concat(
+                        [group for name, group in sheet_data]
+                    )
                     file_data[f"{file_path}_{sheet_name}"] = grouped_journal_df
 
         # Process and generate invoices
         for file_path in file_data:
             data1 = file_data["./uploads/Pay Journal (CSV).csv"]
-            data2 = file_data["./uploads/CYP invoice query FY 24 Auto Reconciliation.xlsm_0"]
-            data3 = file_data["./uploads/CYP invoice query FY 24 Auto Reconciliation.xlsm_1"]
+            data2 = file_data[
+                "./uploads/CYP invoice query FY 24 Auto Reconciliation.xlsm_0"
+            ]
+            data3 = file_data[
+                "./uploads/CYP invoice query FY 24 Auto Reconciliation.xlsm_1"
+            ]
 
             column_mapping = {
                 "Employee Number": "Employee No.",
@@ -68,20 +75,22 @@ class DataProcessor:
             }
 
             data2 = data2.rename(columns=column_mapping)
-            merged_data = data2.merge(data1, on=["Employee No.", "Last Name"], how="inner")
-
+            merged_data = data2.merge(
+                data1, on=["Employee No.", "Last Name"], how="inner"
+            )
             merged_data = merged_data.drop(columns="Given Names_y")
             merged_data = merged_data.rename(columns={"Given Names_x": "Given Names"})
             unique_cost_centre = merged_data["Cost Centre"].unique()
 
             # Create separate CSV files for each unique Cost Centre
             for cost_centre in unique_cost_centre:
-                filtered_data = merged_data[merged_data["Cost Centre"] == cost_centre].copy()
+                filtered_data = merged_data[
+                    merged_data["Cost Centre"] == cost_centre
+                ].copy()
                 filtered_data = filtered_data.merge(
                     data3, on=["Job Classification"], how="inner"
                 )
                 filtered_data.set_index("Employee No.", inplace=True)
-
                 filename = f"{cost_centre.replace(' ', '_')}.csv"
                 file_path = os.path.join(self.output_folder, filename)
                 filtered_data.to_csv(file_path)
@@ -112,7 +121,7 @@ class DataProcessor:
 
                 final_data = []
                 total_amount = 0
-                # prefix = csv_file.split("-")
+                prefix = csv_file.split("-")
                 for src_col, target_col in mapping.items():
                     if src_col in data.columns and target_col in data.columns:
                         unit = data[src_col].values
@@ -124,8 +133,8 @@ class DataProcessor:
                         description = (
                             data["Job Classification"]
                             + "-"
-                            # + prefix[0]
-                            # + "-"
+                            + prefix[0]
+                            + "-"
                             + target_col
                             + "-"
                             + data["Given Names"]
@@ -135,7 +144,9 @@ class DataProcessor:
 
                         data["Given Names"] = data["Given Names"].values
                         data["Last Name"] = data["Last Name"].values
-                        period_end_date = datetime.strptime(data["Period End Date"].iloc[0], "%d/%m/%Y")
+                        period_end_date = datetime.strptime(
+                            data["Period End Date"].iloc[0], "%d/%m/%Y"
+                        )
                         serviced_start_date = period_end_date - pd.DateOffset(days=6)
                         serviced_period = f"{serviced_start_date.strftime('%d/%m/%Y')} - {period_end_date.strftime('%d/%m/%Y')}"
 

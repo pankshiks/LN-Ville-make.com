@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import pdfkit
 from jinja2 import Environment, FileSystemLoader
+from concurrent.futures import ThreadPoolExecutor
 
 
 class InvoiceProcessor:
@@ -9,60 +10,70 @@ class InvoiceProcessor:
         self.invoice_folder = invoice_folder
         self.output_folder = output_folder
 
-    def process_invoices(self):
-        invoice_files = [f for f in os.listdir(self.invoice_folder) if f.endswith('_invoice.csv')]
+    def generate_pdf(self, invoice_file):
+        data = pd.read_csv(os.path.join(self.invoice_folder, invoice_file), header=[0])
+        data = data[data["Amount"] != 0]
+
+        data["Amount"] = data["Amount"].apply(
+            lambda x: "{:.2f}".format(float(x)) if x else "0.00"
+        )
+
+        subtotal = data["Amount"].astype(float).sum()
         gst_rate = 0.10
+        gst = float(subtotal) * gst_rate
 
-        for invoice_file in invoice_files:
-            data = pd.read_csv(os.path.join(self.invoice_folder, invoice_file), header=[0])
-            data = data[data["Amount"] != 0]
+        # Ensure two decimal places for subtotal and gst
+        subtotal = "{:.2f}".format(subtotal)
+        gst = "{:.2f}".format(gst)
 
-            data["Amount"] = data["Amount"].apply(lambda x: "{:.2f}".format(float(x)) if x else "0.00")
+        grand_total = float(subtotal) + float(gst)
 
-            subtotal = data["Amount"].astype(float).sum()
-            gst = float(subtotal) * gst_rate
+        totals = {
+            "subtotal": subtotal,
+            "gst": gst,
+            "grand_total": "{:.2f}".format(grand_total),
+        }
 
-            # Ensure two decimal places for subtotal and gst
-            subtotal = "{:.2f}".format(subtotal)
-            gst = "{:.2f}".format(gst)
+        result_df_with_blanks = pd.DataFrame()
+        current_given_names = None
 
-            grand_total = float(subtotal) + float(gst)
+        blank_row = {
+            "Serviced": "",
+            "Description": "",
+            "Unit": "",
+            "Rate": "",
+            "Amount": "",
+        }
 
-            totals = {
-                "subtotal": subtotal,
-                "gst": gst,
-                "grand_total": "{:.2f}".format(grand_total),
-            }
+        for index, row in data.iterrows():
+            given_names = row["Given Names"]
+            if current_given_names is None or given_names != current_given_names:
+                result_df_with_blanks = pd.concat(
+                    [result_df_with_blanks, pd.DataFrame(blank_row, index=[0])]
+                )
+            result_df_with_blanks = pd.concat(
+                [result_df_with_blanks, pd.DataFrame(row).T]
+            )
+            current_given_names = given_names
 
-            result_df_with_blanks = pd.DataFrame()
-            current_given_names = None
+        # Create a Jinja2 environment and load the template
+        env = Environment(loader=FileSystemLoader("."))
+        template = env.get_template("templates/template.html")
+        # Render the template with your data
+        rendered_html = template.render(data=result_df_with_blanks, totals=totals)
+        # Define output PDF file name based on the current invoice file
+        pdf_output = os.path.join(
+            self.output_folder, os.path.splitext(invoice_file)[0] + ".pdf"
+        )
+        # Use pdfkit to generate PDF from rendered HTML
+        pdfkit.from_string(rendered_html, pdf_output)
 
-            blank_row = {
-                "Serviced": "",
-                "Description": "",
-                "Unit": "",
-                "Rate": "",
-                "Amount": "",
-            }
+    def process_invoices(self):
+        invoice_files = [
+            f for f in os.listdir(self.invoice_folder) if f.endswith("_invoice.csv")
+        ]
 
-            for index, row in data.iterrows():
-                given_names = row["Given Names"]
-                if current_given_names is None or given_names != current_given_names:
-                    result_df_with_blanks = pd.concat(
-                        [result_df_with_blanks, pd.DataFrame(blank_row, index=[0])]
-                    )
-                result_df_with_blanks = pd.concat([result_df_with_blanks, pd.DataFrame(row).T])
-                current_given_names = given_names
-
-            # Create a Jinja2 environment and load the template
-            env = Environment(loader=FileSystemLoader("."))
-            template = env.get_template("templates/template.html")
-            # Render the template with your data
-            rendered_html = template.render(data=result_df_with_blanks, totals=totals)
-            # Define output PDF file name based on the current invoice file
-            pdf_output = os.path.join(self.output_folder, os.path.splitext(invoice_file)[0] + ".pdf")
-            # Use pdfkit to generate PDF from rendered HTML
-            pdfkit.from_string(rendered_html, pdf_output)
-
-
-
+        with ThreadPoolExecutor(
+            max_workers=10
+        ) as executor:  # Adjust max_workers as needed
+            executor.map(self.generate_pdf, invoice_files)
