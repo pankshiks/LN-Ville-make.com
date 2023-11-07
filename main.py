@@ -64,50 +64,43 @@ def calculate_amount_sum(csv_folder_path, pdf_folder_path):
         results = []
         # Create a separate list for files
         files_list = []
-        print(len(os.listdir(csv_folder_path)))
-        print(len(os.listdir(pdf_folder_path)))
 
         # Iterate through all files in the folder
         for file_name in os.listdir(csv_folder_path):
-            print(file_name)
             # Construct the full path to the CSV file
             file_path = os.path.join(csv_folder_path, file_name)
             company_name = file_name.split("-")
-            try:
-                # Read the CSV file into a Pandas DataFrame
-                df = pd.read_csv(file_path)
-                clients_df = pd.read_csv("./app/data/clients_and_projects.csv")
-                filtered_df = clients_df[
-                    clients_df["Project"].str.contains(
-                        company_name[0], case=False, na=False
-                    )
-                ]
+            # Read the CSV file into a Pandas DataFrame
+            df = pd.read_csv(file_path)
+            clients_df = pd.read_csv("./app/data/clients_and_projects.csv")
+            filtered_df = clients_df[
+                clients_df["Project"].str.contains(
+                    company_name[0], case=False, na=False
+                )
+            ]
 
-                if not filtered_df.empty:
-                    filtered_data = filtered_df.iloc[0].to_dict()
-                    total_amount = df["Amount"].sum()
+            if not filtered_df.empty:
+                filtered_data = filtered_df.iloc[0].to_dict()
+                total_amount = df["Amount"].sum()
 
-                    # Create a result dictionary and append it to the list
-                    result = {
-                        "total_amount": total_amount,
-                        "filtered_data": filtered_data,
-                    }
-                    results.append(result)
+                # Create a result dictionary and append it to the list
+                result = {
+                    "total_amount": total_amount,
+                    "filtered_data": filtered_data,
+                }
+                results.append(result)
 
-                    # Get the corresponding PDF file name
-                    pdf_file_name = os.path.splitext(file_name)[0] + ".pdf"
-                    pdf_file_path = os.path.join(pdf_folder_path, pdf_file_name)
+                # Get the corresponding PDF file name
+                pdf_file_name = os.path.splitext(file_name)[0] + ".pdf"
+                pdf_file_path = os.path.join(pdf_folder_path, pdf_file_name)
 
-                    # Read the PDF file in binary format
-                    with open(pdf_file_path, "rb") as pdf_file:
-                        pdf_binary = pdf_file.read()
+                # Read the PDF file in binary format
+                with open(pdf_file_path, "rb") as pdf_file:
+                    pdf_binary = pdf_file.read()
 
-                    # Create a files dictionary for the PDF file
-                    files = (pdf_file_name, pdf_binary, "application/pdf")
-                    files_list.append(files)
-
-            except FileNotFoundError:
-                continue
+                # Create a files dictionary for the PDF file
+                files = (pdf_file_name, pdf_binary, "application/pdf")
+                files_list.append(files)
 
         return results, files_list
     except Exception as e:
