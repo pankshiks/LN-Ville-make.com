@@ -76,6 +76,7 @@ def calculate_amount_sum(csv_folder_path, pdf_folder_path):
             # Read the CSV file into a Pandas DataFrame
             df = pd.read_csv(file_path)
             csv_file_path = os.path.join(csv_data_directory, csv_file_name)
+            print(csv_file_path)
             clients_df = pd.read_csv(csv_file_path)
             filtered_df = clients_df[
                 clients_df["Project"].str.contains(
