@@ -14,6 +14,7 @@ import json
 
 
 app = FastAPI()
+base_url = os.environ.get("BASE_URL", "http://127.0.0.1:8000")
 
 # Define the directory path
 directory_path = "final_folder"
@@ -99,7 +100,7 @@ def calculate_amount_sum(csv_folder_path, pdf_folder_path):
                 files_list.append(files)
 
         except FileNotFoundError:
-            return None
+            continue
 
     return results, files_list
 
@@ -200,8 +201,11 @@ async def process_data_and_invoices(
     pdf_folder = "final_folder"  # Specify the URL path where PDFs are served
     pdf_urls = []
     for pdf_filename in os.listdir(output_folder):
-        pdf_url = f"http://127.0.0.1:8000/{pdf_folder}/{pdf_filename}"
-        pdf_urls.append(pdf_url)
+        pdf_path = f"{base_url}/{pdf_folder}/{pdf_filename}"
+        if os.path.exists(pdf_path):
+            pdf_urls.append(pdf_path)
+        else:
+            return {"detail": "PDF not found"}, 404
 
     # Call the send_data_to_webhook function to send the data to the webhook
     # Organize the data and files into dictionaries
