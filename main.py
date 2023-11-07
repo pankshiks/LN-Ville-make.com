@@ -42,6 +42,9 @@ def is_valid_file_extension(filename, valid_extensions):
 # Define the send_data_to_webhook function to send data to the webhook
 def send_data_to_webhook(data: dict, files: dict):
     webhook_url = "https://hook.eu2.make.com/e5ql7jh487prsm5551jegt98wr2l463p"
+    print(data)
+    print(files)
+    print("===================")
     try:
         files_data = [
             ("file_data", (file_name, file_data, content_type))
@@ -50,6 +53,7 @@ def send_data_to_webhook(data: dict, files: dict):
         response = requests.post(
             webhook_url, data={"fulldata": json.dumps(data)}, files=files_data
         )
+        print(response.status_code)
         response.raise_for_status()  # Raise an exception for HTTP errors
 
         return {"message": "Data sent to the webhook successfully"}
