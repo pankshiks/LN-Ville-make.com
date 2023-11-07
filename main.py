@@ -202,10 +202,7 @@ async def process_data_and_invoices(
     pdf_urls = []
     for pdf_filename in os.listdir(output_folder):
         pdf_path = f"{base_url}/{pdf_folder}/{pdf_filename}"
-        if os.path.exists(pdf_path):
-            pdf_urls.append(pdf_path)
-        else:
-            return {"detail": "PDF not found"}, 404
+        pdf_urls.append(pdf_path)
 
     # Call the send_data_to_webhook function to send the data to the webhook
     # Organize the data and files into dictionaries
