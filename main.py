@@ -21,6 +21,8 @@ directory_path = "final_folder"
 one_more = "invoice_folder"
 csv_data_directory = "./data"
 csv_file_name = "clients_and_projects.csv"
+clients_data = "map_clients.csv"
+organizations_data = "organizations.csv"
 
 
 # Check if the directory exists, and create it if it doesn't
@@ -61,6 +63,24 @@ def send_data_to_webhook(data: dict, files: dict):
         return {"message": f"Failed to send data to the webhook: {str(e)}"}
 
 
+# Function to perform a case-insensitive partial match after removing spaces
+def partial_match(row, organizations_df):
+    # Remove spaces and convert to lowercase in the "Payroll Name" before matching
+    cleaned_payroll_name = row["Payroll Name"].replace(" ", "").lower()
+
+    # Remove spaces and convert to lowercase in the "Contract Entity" before matching
+    cleaned_contract_entity = (
+        organizations_df["Contract Entity"].str.replace(" ", "").str.lower()
+    )
+
+    matching_rows = organizations_df[
+        cleaned_contract_entity.str.contains(
+            cleaned_payroll_name, case=False, regex=False
+        )
+    ]
+    return matching_rows.iloc[0]
+
+
 def calculate_amount_sum(csv_folder_path, pdf_folder_path):
     try:
         # Create an empty list to store the results
@@ -72,26 +92,37 @@ def calculate_amount_sum(csv_folder_path, pdf_folder_path):
         for file_name in os.listdir(csv_folder_path):
             # Construct the full path to the CSV file
             file_path = os.path.join(csv_folder_path, file_name)
-            company_name = file_name.split("-")
+            # company_name = file_name.split("-")
             # Read the CSV file into a Pandas DataFrame
             df = pd.read_csv(file_path)
-            csv_file_path = os.path.join(csv_data_directory, csv_file_name)
-            print(csv_file_path)
-            clients_df = pd.read_csv(csv_file_path)
-            filtered_df = clients_df[
-                clients_df["Project"].str.contains(
-                    company_name[0], case=False, na=False
-                )
-            ]
+            # csv_file_path = os.path.join(csv_data_directory, csv_file_name)
+            clients_file_path = os.path.join(csv_data_directory, clients_data)
+            organization_file_path = os.path.join(
+                csv_data_directory, organizations_data
+            )
 
-            if not filtered_df.empty:
-                filtered_data = filtered_df.iloc[0].to_dict()
+            # clients_df = pd.read_csv(csv_file_path)
+            find_clients_df = pd.read_csv(clients_file_path)
+            organizations_df = pd.read_csv(organization_file_path)
+
+            matching_rows_df = df.apply(
+                partial_match, axis=1, organizations_df=organizations_df
+            )
+
+            if not matching_rows_df.empty:
+                filtered_data = matching_rows_df.iloc[0].to_dict()
+
                 total_amount = df["Amount"].sum()
+                index_cost_centre = df["Cost Centre"].iloc[0]
+                search_entity = find_clients_df.loc[
+                    find_clients_df["Cost Centre"] == index_cost_centre, "Search Entity"
+                ].values[0]
 
                 # Create a result dictionary and append it to the list
                 result = {
                     "total_amount": total_amount,
                     "filtered_data": filtered_data,
+                    "client_name": search_entity,
                 }
                 results.append(result)
 
