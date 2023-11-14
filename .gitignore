@@ -6,6 +6,8 @@
 /*.csv
 # Ignore PDF files at the root
 /*.pdf
+# Ignore output files
+nohup.out
 # Ignore Dynamically Generated Files
 output_folder/
 invoice_folder/
