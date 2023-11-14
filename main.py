@@ -2,8 +2,9 @@ from fastapi import FastAPI, UploadFile, HTTPException
 from app.processor import DataProcessor
 from app.generate_pdf import InvoiceProcessor
 from pydantic import BaseModel
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.openapi.utils import get_openapi
 from typing import List
 import os
 import openpyxl
@@ -22,7 +23,8 @@ class AppConfig:
     ORGANIZATIONS_DATA = "organizations.csv"
 
 
-app = FastAPI()
+app = FastAPI(swagger_ui_parameters={"defaultModelsExpandDepth": -1}, redoc_url=None)
+
 app_settings = AppConfig()
 
 # Check if the directory exists, and create it if it doesn't
@@ -140,7 +142,13 @@ webhook_sender = WebhookSender()
 csv_processor = CsvProcessor()
 
 
-@app.post("/process_data_and_invoices", response_model=ProcessInvoicesResponse)
+# Redirect the root path to /docs
+@app.get("/", include_in_schema=False)
+async def redirect_to_docs():
+    return RedirectResponse(url="/docs")
+
+
+@app.post("/process_data_and_invoices", response_model=ProcessInvoicesResponse, tags=["Run Script"])
 async def process_data_and_invoices(
     pay_journal: UploadFile,
     daily_cost_detail: UploadFile,
@@ -236,10 +244,26 @@ async def process_data_and_invoices(
     }
 
 
-@app.get("/{pdf_folder}/{pdf_filename}")
+@app.get("/{pdf_folder}/{pdf_filename}", include_in_schema=False)
 def serve_pdf(pdf_filename: str):
     pdf_path = os.path.join(app_settings.DIRECTORY_PATH, pdf_filename)
     if os.path.exists(pdf_path):
         return FileResponse(pdf_path)
     else:
         return {"detail": "PDF not found"}, 404
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    openapi_schema = get_openapi(
+        title="Automation Script",
+        version="1.0.0",
+        routes=app.routes,
+    )
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
