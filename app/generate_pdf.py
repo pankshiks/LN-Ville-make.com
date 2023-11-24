@@ -104,5 +104,5 @@ class InvoiceProcessor:
         """
         invoice_files = [f for f in os.listdir(self.invoice_folder) if f.endswith("_invoice.csv")]
 
-        with ThreadPoolExecutor(max_workers=10) as executor:  # Adjust max_workers as needed
+        with ThreadPoolExecutor(max_workers=6) as executor:  # Adjust max_workers as needed
             executor.map(self.generate_pdf, invoice_files)
