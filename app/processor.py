@@ -45,6 +45,13 @@ class DataProcessor:
 
     def process_data(self):
         self.create_output_folders()
+        csv_data_directory = "./data"
+        csv_file_name = "clients_and_projects.csv"
+        organizations_data = "organizations.csv"
+
+        csv_file_path = os.path.join(csv_data_directory, csv_file_name)
+        organization_file_path = os.path.join(csv_data_directory, organizations_data)
+
         grouped_data = self.process_and_return_data()
         file_data = {}
 
@@ -87,6 +94,7 @@ class DataProcessor:
                 filtered_data = merged_data[
                     merged_data["Cost Centre"] == cost_centre
                 ].copy()
+
                 filtered_data = filtered_data.merge(
                     data3, on=["Job Classification"], how="inner"
                 )
@@ -143,13 +151,17 @@ class DataProcessor:
                         )
 
                         data["Given Names"] = data["Given Names"].values
+                        data["Cost Centre"] = data["Cost Centre"].values
                         data["Last Name"] = data["Last Name"].values
+                        split_names = data["Payroll Name Selection"].str.split(
+                            "-", expand=True
+                        )
+
                         period_end_date = datetime.strptime(
                             data["Period End Date"].iloc[0], "%d/%m/%Y"
                         )
                         serviced_start_date = period_end_date - pd.DateOffset(days=6)
                         serviced_period = f"{serviced_start_date.strftime('%d/%m/%Y')} - {period_end_date.strftime('%d/%m/%Y')}"
-
                         for i in range(len(result)):
                             serviced = serviced_period
                             unit_value = "{:.2f}".format(unit[i])
@@ -166,6 +178,8 @@ class DataProcessor:
                                 "Amount": amount,
                                 "Given Names": data["Given Names"][i],
                                 "Last Name": data["Last Name"][i],
+                                "Cost Centre": data["Cost Centre"][i],
+                                "Payroll Name": split_names[0][i],
                             }
                             final_data.append(row)
 
