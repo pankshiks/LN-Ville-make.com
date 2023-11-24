@@ -7,12 +7,22 @@ from app.csv_reader import DataReader
 
 class DataProcessor:
     def __init__(self, file_paths):
+        """
+        Initialize DataProcessor with a list of file paths.
+
+        :param file_paths: List of file paths to be processed.
+        """
         self.file_paths = file_paths
         self.output_folder = "output_folder"
         self.invoice_folder = "invoice_folder"
-        # clients_df = pd.read_csv("./data/clients_and_projects.csv")
 
     def process_csv(self, file_path):
+        """
+        Process CSV file and group data by 'Cost Centre'.
+
+        :param file_path: Path of the CSV file to be processed.
+        :return: Grouped DataFrame.
+        """
         journal_data = DataReader(file_path)
         journal_df = journal_data.read_csv(skip_rows=1)
         journal_df.fillna(0, inplace=True)
@@ -20,6 +30,12 @@ class DataProcessor:
         return grouped_journal_df
 
     def process_xlsx(self, file_path):
+        """
+        Process XLSX file and group data by sheet name.
+
+        :param file_path: Path of the XLSX file to be processed.
+        :return: Grouped DataFrames for 'Job_Classifications' and 'Charge Sheet'.
+        """
         workbook = px.load_workbook(file_path, data_only=True)
         grouped_data = {}
         for sheet_name in ["Job_Classifications", "Charge Sheet"]:
@@ -29,6 +45,11 @@ class DataProcessor:
         return grouped_data["Job_Classifications"], grouped_data["Charge Sheet"]
 
     def process_and_return_data(self):
+        """
+        Process all files and return a dictionary of grouped data.
+
+        :return: Dictionary with file paths as keys and grouped data as values.
+        """
         grouped_data = {}
         for file_path in self.file_paths:
             if file_path.endswith(".csv"):
@@ -40,18 +61,18 @@ class DataProcessor:
         return grouped_data
 
     def create_output_folders(self):
+        """
+        Create output and invoice folders if they don't exist.
+        """
         os.makedirs(self.output_folder, exist_ok=True)
         os.makedirs(self.invoice_folder, exist_ok=True)
 
     def process_data(self):
+        """
+        Process data, generate invoices, and save them in the output folder.
+        """
         self.create_output_folders()
-        csv_data_directory = "./data"
-        csv_file_name = "clients_and_projects.csv"
-        organizations_data = "organizations.csv"
-
-        csv_file_path = os.path.join(csv_data_directory, csv_file_name)
-        organization_file_path = os.path.join(csv_data_directory, organizations_data)
-
+        
         grouped_data = self.process_and_return_data()
         file_data = {}
 
@@ -61,43 +82,26 @@ class DataProcessor:
                 file_data[file_path] = grouped_journal_df
             else:
                 for sheet_name, sheet_data in enumerate(grouped_df):
-                    grouped_journal_df = pd.concat(
-                        [group for name, group in sheet_data]
-                    )
+                    grouped_journal_df = pd.concat([group for name, group in sheet_data])
                     file_data[f"{file_path}_{sheet_name}"] = grouped_journal_df
 
-        # Process and generate invoices
         for file_path in file_data:
+            # Process and merge data
             data1 = file_data["./uploads/Pay Journal (CSV).csv"]
-            data2 = file_data[
-                "./uploads/CYP invoice query FY 24 Auto Reconciliation.xlsm_0"
-            ]
-            data3 = file_data[
-                "./uploads/CYP invoice query FY 24 Auto Reconciliation.xlsm_1"
-            ]
+            data2 = file_data["./uploads/CYP invoice query FY 24 Auto Reconciliation.xlsm_0"]
+            data3 = file_data["./uploads/CYP invoice query FY 24 Auto Reconciliation.xlsm_1"]
 
-            column_mapping = {
-                "Employee Number": "Employee No.",
-                "First Name": "Given Names",
-            }
-
+            column_mapping = {"Employee Number": "Employee No.", "First Name": "Given Names"}
             data2 = data2.rename(columns=column_mapping)
-            merged_data = data2.merge(
-                data1, on=["Employee No.", "Last Name"], how="inner"
-            )
+            merged_data = data2.merge(data1, on=["Employee No.", "Last Name"], how="inner")
             merged_data = merged_data.drop(columns="Given Names_y")
             merged_data = merged_data.rename(columns={"Given Names_x": "Given Names"})
             unique_cost_centre = merged_data["Cost Centre"].unique()
 
             # Create separate CSV files for each unique Cost Centre
             for cost_centre in unique_cost_centre:
-                filtered_data = merged_data[
-                    merged_data["Cost Centre"] == cost_centre
-                ].copy()
-
-                filtered_data = filtered_data.merge(
-                    data3, on=["Job Classification"], how="inner"
-                )
+                filtered_data = merged_data[merged_data["Cost Centre"] == cost_centre].copy()
+                filtered_data = filtered_data.merge(data3, on=["Job Classification"], how="inner")
                 filtered_data.set_index("Employee No.", inplace=True)
                 filename = f"{cost_centre.replace(' ', '_')}.csv"
                 file_path = os.path.join(self.output_folder, filename)
@@ -130,10 +134,12 @@ class DataProcessor:
                 final_data = []
                 total_amount = 0
                 prefix = csv_file.split("-")
+
                 for src_col, target_col in mapping.items():
                     if src_col in data.columns and target_col in data.columns:
                         unit = data[src_col].values
                         rate = data[target_col].values
+
                         if not any(unit) or not any(rate):
                             continue
 
@@ -153,13 +159,9 @@ class DataProcessor:
                         data["Given Names"] = data["Given Names"].values
                         data["Cost Centre"] = data["Cost Centre"].values
                         data["Last Name"] = data["Last Name"].values
-                        split_names = data["Payroll Name Selection"].str.split(
-                            "-", expand=True
-                        )
+                        split_names = data["Payroll Name Selection"].str.split("-", expand=True)
 
-                        period_end_date = datetime.strptime(
-                            data["Period End Date"].iloc[0], "%d/%m/%Y"
-                        )
+                        period_end_date = datetime.strptime(data["Period End Date"].iloc[0], "%d/%m/%Y")
                         serviced_start_date = period_end_date - pd.DateOffset(days=6)
                         serviced_period = f"{serviced_start_date.strftime('%d/%m/%Y')} - {period_end_date.strftime('%d/%m/%Y')}"
                         for i in range(len(result)):
