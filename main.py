@@ -129,7 +129,7 @@ class CsvProcessor:
             return results, files_list
         except Exception as e:
             print("Not Working", e)
-            return None
+            return [],[]
 
 
 class ProcessInvoicesResponse(BaseModel):

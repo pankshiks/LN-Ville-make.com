@@ -390,6 +390,11 @@
             </table>
         </div>
         <script>
+
+            function checkAndReturn(data) {
+                return (typeof data !== 'undefined' && data !== null) ? data : '';
+            }
+
             function splitAndInsertAddress() {
                 // Get the address string
                 var addressString = "{{invoice_info['Address']}}";
@@ -403,10 +408,10 @@
                 }
 
                 // Update HTML elements with the address parts
-                document.getElementById('fullAddress').innerHTML = addressParts[0];
-                document.getElementById('level').innerHTML = addressParts[1];
-                document.getElementById('city').innerHTML = addressParts[2];
-                document.getElementById('statePostalCode').innerHTML = addressParts[3] + ', ' + addressParts[4];
+                document.getElementById('fullAddress').innerHTML = checkAndReturn(addressParts[0]);
+                document.getElementById('level').innerHTML = checkAndReturn(addressParts[1]);
+                document.getElementById('city').innerHTML = checkAndReturn(addressParts[2]);
+                document.getElementById('statePostalCode').innerHTML = checkAndReturn(addressParts[3]) +" "+ checkAndReturn(addressParts[4]);
             }
 
             function getCurrentDate() {
